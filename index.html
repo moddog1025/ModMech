@@ -1,305 +1,655 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mechanism Simulator</title>
-    <!-- Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for a clean, modern look -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Yahtzee Game</title>
+    
+    <!-- React and Babel for in-browser JSX transpilation -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
-        /* Basic body styling */
+        /* --- Global Styles (from index.css) --- */
         body {
-            font-family: 'Inter', sans-serif;
-            overflow: hidden; /* Prevents scrollbars from appearing */
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f0f2f5;
+            color: #333;
         }
-        /* Style for an active tool button */
-        .tool-btn.active > div {
-            background-color: #bfdbfe; /* blue-200 */
-            outline: 2px solid #3b82f6; /* blue-500 */
+        * {
+            box-sizing: border-box;
         }
-        /* Style for a disabled tool button */
-        .tool-btn:disabled > div {
-            opacity: 0.5;
+
+        /* --- App Component Styles (from App.css) --- */
+        .App {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .App-header {
+            background-color: #c82333;
+            padding: 10px 20px;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .App-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .App main {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .App-footer {
+            padding: 10px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        /* --- Game Component Styles (from Game.css) --- */
+        .Game {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .Game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+        .Game-title {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        .Game-restart-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .Game-restart-btn:hover {
+            background-color: #5a6268;
+        }
+        .Game-roll-btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            background-color: #dc3545;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .Game-roll-btn:hover:not(:disabled) {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+        .Game-roll-btn:disabled {
+            background-color: #a0a0a0;
             cursor: not-allowed;
+            transform: none;
         }
-        /* Basic canvas styling */
-        canvas {
-            background-color: #f0f0f0;
-            cursor: default;
-            display: block;
+
+        /* --- DiceContainer Styles (from DiceContainer.css) --- */
+        .DiceContainer {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #e9ecef;
+            border-radius: 8px;
         }
-        /* Outline for the canvas when in simulation mode */
-        canvas.sim-mode {
-            outline: 2px solid #8b5cf6; /* purple-500 */
+        @media (max-width: 480px) {
+            .DiceContainer {
+                gap: 0.5rem;
+                padding: 0.5rem;
+                flex-wrap: wrap;
+            }
+        }
+
+        /* --- Die Styles (from Die.css) --- */
+        .Die {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .Die.held {
+            background-color: #feff9c;
+            border-color: #f7b733;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: scale(1.05);
+        }
+        .Die-face {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .Die-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #333;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+        }
+        .Die.rolling {
+            animation: roll 1s ease-out;
+        }
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            20% { transform: rotate(180deg) scale(1.2); }
+            40% { transform: rotate(360deg) scale(1); }
+            60% { transform: rotate(540deg) scale(1.2); }
+            80% { transform: rotate(720deg) scale(1); }
+            100% { transform: rotate(720deg) scale(1); }
+        }
+        @media (max-width: 480px) {
+            .Die {
+                width: 45px;
+                height: 45px;
+            }
+            .Die-dot {
+                width: 9px;
+                height: 9px;
+            }
+        }
+
+        /* --- ScoreTable Styles (from ScoreTable.css) --- */
+        .ScoreTable-container {
+            overflow-x: auto;
+        }
+        .ScoreTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .ScoreTable th,
+        .ScoreTable td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .ScoreTable th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .ScoreRow.clickable:hover {
+            background-color: #e9f5ff;
+            cursor: pointer;
+        }
+        .ScoreRow.scored {
+            background-color: #f8f9fa;
+            color: #666;
+        }
+        .ScoreRow.scored .ScoreRow-score {
+            font-weight: bold;
+            color: #c82333;
+        }
+        .ScoreRow-score {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .ScoreTable-section-header td {
+            background-color: #343a40;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        .ScoreTable-total-row,
+        .ScoreTable-grand-total {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .ScoreTable-total-row td:last-child,
+        .ScoreTable-grand-total td:last-child {
+            text-align: center;
+        }
+        .ScoreTable-grand-total {
+            background-color: #28a745;
+            color: white;
+            font-size: 1.2rem;
+        }
+        @media (max-width: 600px) {
+            .ScoreTable td:nth-child(2) {
+                display: none; /* Hide description on small screens */
+            }
+        }
+
+        /* --- Gameover Styles (from Gameover.css) --- */
+        .Gameover {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            margin: 2rem auto;
+        }
+        .Gameover-title {
+            color: #dc3545;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+        }
+        .Gameover-scores {
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            width: 100%;
+        }
+        .Gameover-scores p {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        .Gameover-scores p span {
+            font-weight: bold;
+        }
+        .Gameover-final-score {
+            margin-top: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #28a745;
+            border: none !important;
+        }
+        .Gameover-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .Gameover-button:hover {
+            background-color: #218838;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body>
+    <div id="root"></div>
 
-    <div class="flex h-screen">
-        <!-- Left Sidebar: Contains all tool buttons -->
-        <div class="w-20 bg-gray-200 p-4 flex flex-col items-center">
-            
-            <!-- Creation Tools: Pin and Line -->
-            <div class="space-y-4 pt-12">
-                <button id="pin-tool-btn" class="tool-btn" title="Place Pin (P)">
-                    <div class="w-12 h-12 rounded-lg bg-red-500 hover:bg-red-600 flex items-center justify-center">
-                        <div class="w-4 h-4 bg-white rounded-full"></div>
-                    </div>
-                </button>
-                <button id="line-tool-btn" class="tool-btn" title="Create Member (L)">
-                    <div class="w-12 h-12 rounded-lg bg-blue-500 hover:bg-blue-600 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-12.728 12.728" />
-                        </svg>
-                    </div>
-                </button>
-            </div>
+    <script type="text/babel">
+        // --- Scoring Logic (from rules.js) ---
+        const rules = (() => {
+            function freq(dice) {
+                const freqs = new Map();
+                for (const d of dice) {
+                    freqs.set(d, (freqs.get(d) || 0) + 1);
+                }
+                return Array.from(freqs.values());
+            }
 
-            <!-- Constraint Tools: Anchor, Slider, and Motor -->
-            <div class="space-y-4 pt-8 mt-4">
-                 <button id="anchor-tool-btn" class="tool-btn" title="Anchor Pin (A)">
-                     <div class="w-12 h-12 rounded-lg bg-gray-600 hover:bg-gray-700 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4m16 0a8 8 0 11-16 0 8 8 0 0116 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16" />
-                        </svg>
-                     </div>
-                </button>
-                 <button id="slider-tool-btn" class="tool-btn" title="Slider Constraint (S)">
-                    <div class="w-12 h-12 rounded-lg bg-green-600 hover:bg-green-700 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 4v16m-4-8h14" />
-                        </svg>
-                    </div>
-                </button>
-                <button id="motor-tool-btn" class="tool-btn" title="Add Motor (M)">
-                    <div class="w-12 h-12 rounded-lg bg-orange-500 hover:bg-orange-600 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </button>
-            </div>
+            function sum(dice) {
+                return dice.reduce((prev, curr) => prev + curr, 0);
+            }
 
-             <!-- App Mode & Reset Tools -->
-            <div class="mt-auto space-y-4">
-                 <button id="edit-mode-btn" class="tool-btn" title="Edit Mode">
-                     <div class="w-12 h-12 rounded-lg bg-gray-400 hover:bg-gray-500 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                     </div>
-                 </button>
-                 <button id="sim-mode-btn" class="tool-btn" title="Simulate">
-                    <div class="w-12 h-12 rounded-lg bg-purple-600 hover:bg-purple-700 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </button>
-                <button id="reset-btn" class="tool-btn" title="Reset Canvas">
-                    <div class="w-12 h-12 rounded-lg bg-gray-300 hover:bg-gray-400 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </div>
-                </button>
-            </div>
-        </div>
+            class Rule {
+                constructor(name, description) {
+                    this.name = name;
+                    this.description = description;
+                }
+                evalRoll = (dice) => 0;
+            }
 
-        <!-- Main Content: Workspace -->
-        <div class="flex-1 p-4">
-            <canvas id="workspace-canvas" class="w-full h-full rounded-lg shadow-md"></canvas>
-        </div>
-    </div>
+            class SumOfN extends Rule {
+                constructor(name, description, n) {
+                    super(name, description);
+                    this.n = n;
+                }
+                evalRoll = (dice) => this.n * dice.filter(d => d === this.n).length;
+            }
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- ELEMENT REFERENCES ---
-            const canvas = document.getElementById('workspace-canvas');
-            const ctx = canvas.getContext('2d');
-            const toolButtons = {
-                pin: document.getElementById('pin-tool-btn'),
-                line: document.getElementById('line-tool-btn'),
-                anchor: document.getElementById('anchor-tool-btn'),
-                slider: document.getElementById('slider-tool-btn'),
-                motor: document.getElementById('motor-tool-btn'),
-                sim: document.getElementById('sim-mode-btn'),
-                edit: document.getElementById('edit-mode-btn'),
-                reset: document.getElementById('reset-btn')
+            class NOfAKind extends Rule {
+                constructor(name, description, n) {
+                    super(name, description);
+                    this.n = n;
+                }
+                evalRoll = (dice) => {
+                    const freqs = freq(dice);
+                    return freqs.some(f => f >= this.n) ? sum(dice) : 0;
+                };
+            }
+
+            class Yahtzee extends Rule {
+                evalRoll = (dice) => freq(dice)[0] === 5 ? 50 : 0;
+            }
+
+            class FullHouse extends Rule {
+                evalRoll = (dice) => {
+                    const freqs = freq(dice);
+                    return freqs.length === 2 && freqs.includes(3) ? 25 : 0;
+                };
+            }
+
+            class Straight extends Rule {
+                constructor(name, description, required, score) {
+                    super(name, description);
+                    this.required = required;
+                    this.score = score;
+                }
+                evalRoll = (dice) => {
+                    const uniqueDice = new Set(dice);
+                    const sortedDiceStr = Array.from(uniqueDice).sort().join("");
+                    const possibilities = ["1234", "2345", "3456", "12345", "23456"];
+                    for (const p of possibilities) {
+                        if (p.length >= this.required && sortedDiceStr.includes(p)) {
+                            return this.score;
+                        }
+                    }
+                    return 0;
+                };
+            }
+
+            const ruleSet = {
+                ones: new SumOfN("Aces", "Score 1 for every 1", 1),
+                twos: new SumOfN("Twos", "Score 2 for every 2", 2),
+                threes: new SumOfN("Threes", "Score 3 for every 3", 3),
+                fours: new SumOfN("Fours", "Score 4 for every 4", 4),
+                fives: new SumOfN("Fives", "Score 5 for every 5", 5),
+                sixes: new SumOfN("Sixes", "Score 6 for every 6", 6),
+                threeOfAKind: new NOfAKind("3 of a Kind", "Sum of all dice if 3 are the same", 3),
+                fourOfAKind: new NOfAKind("4 of a Kind", "Sum of all dice if 4 are the same", 4),
+                fullHouse: new FullHouse("Full House", "Score 25 for a full house"),
+                smallStraight: new Straight("Small Straight", "Score 30 for a small straight", 4, 30),
+                largeStraight: new Straight("Large Straight", "Score 40 for a large straight", 5, 40),
+                yahtzee: new Yahtzee("Yahtzee", "Score 50 for yahtzee"),
+                chance: new Rule("Chance", "Sum of all dice"),
+            };
+            ruleSet.chance.evalRoll = (dice) => sum(dice);
+            return ruleSet;
+        })();
+
+        // --- React Components ---
+
+        // Die Component
+        function Die({ value, isHeld, handleClick, isRolling }) {
+            const dieClasses = `Die ${isHeld ? 'held' : ''} ${isRolling ? 'rolling' : ''}`;
+            const faceDots = {
+                1: [[50, 50]], 2: [[25, 25], [75, 75]], 3: [[25, 25], [50, 50], [75, 75]],
+                4: [[25, 25], [25, 75], [75, 25], [75, 75]],
+                5: [[25, 25], [25, 75], [50, 50], [75, 25], [75, 75]],
+                6: [[25, 25], [25, 50], [25, 75], [75, 25], [75, 50], [75, 75]],
+            };
+            return (
+                <div className={dieClasses} onClick={handleClick}>
+                    <div className="Die-face">
+                        {faceDots[value].map(([x, y], i) => (
+                            <span key={i} className="Die-dot" style={{ top: `${y}%`, left: `${x}%` }}></span>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // DiceContainer Component
+        function DiceContainer({ dice, toggleHeld, isRolling }) {
+            return (
+                <div className="DiceContainer">
+                    {dice.map((d) => (
+                        <Die
+                            value={d.value}
+                            isHeld={d.isHeld}
+                            key={d.id}
+                            handleClick={() => toggleHeld(d.id)}
+                            isRolling={isRolling && !d.isHeld}
+                        />
+                    ))}
+                </div>
+            );
+        }
+
+        // ScoreRow Component
+        function ScoreRow({ name, description, score, potentialScore, onScore, isDisabled }) {
+            const handleClick = () => !isDisabled && onScore();
+            const isScored = score !== null;
+            const rowClass = `ScoreRow ${isScored ? 'scored' : ''} ${!isDisabled && !isScored ? 'clickable' : ''}`;
+            return (
+                <tr className={rowClass} onClick={handleClick}>
+                    <td>{name}</td>
+                    <td>{description}</td>
+                    <td className="ScoreRow-score">
+                        {isScored ? score : (isDisabled ? '-' : potentialScore)}
+                    </td>
+                </tr>
+            );
+        }
+
+        // ScoreTable Component
+        function ScoreTable({ scores, diceValues, applyScore, isScoringDisabled, upperScore, bonus, yahtzeeBonusScore, totalScore }) {
+            const renderRow = (key, name, desc) => (
+                <ScoreRow
+                    key={key} name={name} description={desc}
+                    score={scores[key]}
+                    potentialScore={rules[key].evalRoll(diceValues)}
+                    onScore={() => applyScore(key)}
+                    isDisabled={isScoringDisabled || scores[key] !== null}
+                />
+            );
+            const upperSectionKeys = ['ones', 'twos', 'threes', 'fours', 'fives', 'sixes'];
+            const lowerSectionKeys = ['threeOfAKind', 'fourOfAKind', 'fullHouse', 'smallStraight', 'largeStraight', 'yahtzee', 'chance'];
+
+            return (
+                <div className="ScoreTable-container">
+                    <table className="ScoreTable">
+                        <thead>
+                            <tr><th>Category</th><th>Description</th><th>Score</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr className="ScoreTable-section-header"><td colSpan="3">Upper Section</td></tr>
+                            {upperSectionKeys.map(key => renderRow(key, rules[key].name, rules[key].description))}
+                            <tr className="ScoreTable-total-row"><td colSpan="2">Upper Subtotal</td><td>{upperScore}</td></tr>
+                            <tr className="ScoreTable-total-row"><td colSpan="2">Bonus (if score ≥ 62)</td><td>{bonus}</td></tr>
+                            <tr className="ScoreTable-section-header"><td colSpan="3">Lower Section</td></tr>
+                            {lowerSectionKeys.map(key => renderRow(key, rules[key].name, rules[key].description))}
+                             <tr className="ScoreTable-total-row"><td colSpan="2">Yahtzee Bonus (100 per extra)</td><td>{yahtzeeBonusScore}</td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr className="ScoreTable-grand-total"><td colSpan="2">Grand Total</td><td>{totalScore}</td></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            );
+        }
+        
+        // Gameover Component
+        function Gameover({ totalScore, restartGame, upperScore, bonus, yahtzeeBonusScore }) {
+            return (
+                <div className="Gameover">
+                    <h1 className="Gameover-title">Game Over!</h1>
+                    <div className="Gameover-scores">
+                        <p>Upper Score: <span>{upperScore}</span></p>
+                        <p>Bonus: <span>{bonus}</span></p>
+                        <p>Yahtzee Bonuses: <span>{yahtzeeBonusScore}</span></p>
+                        <p className="Gameover-final-score">Final Score: <span>{totalScore}</span></p>
+                    </div>
+                    <button className="Gameover-button" onClick={restartGame}>Play Again</button>
+                </div>
+            );
+        }
+
+        // Game Component (Main Logic)
+        function Game() {
+            const { useState, useEffect } = React;
+
+            const NUM_DICE = 5;
+            const NUM_ROLLS = 3;
+            const NUM_TURNS = 13;
+            const BONUS_THRESHOLD = 62;
+            const BONUS_POINTS = 35;
+
+            const getInitialState = () => ({
+                dice: Array.from({ length: NUM_DICE }, () => ({ value: 1, isHeld: false, id: crypto.randomUUID() })),
+                scores: {
+                    ones: null, twos: null, threes: null, fours: null, fives: null, sixes: null,
+                    threeOfAKind: null, fourOfAKind: null, fullHouse: null,
+                    smallStraight: null, largeStraight: null, yahtzee: null, chance: null,
+                },
+                rollsLeft: NUM_ROLLS,
+                turn: 1,
+                isRolling: false,
+                yahtzeeBonusCount: 0,
+            });
+
+            const [gameState, setGameState] = useState(getInitialState());
+            const { dice, scores, rollsLeft, turn, isRolling, yahtzeeBonusCount } = gameState;
+
+            useEffect(() => {
+                if (isRolling) {
+                    const timer = setTimeout(() => {
+                        setGameState(prevState => ({ ...prevState, isRolling: false }));
+                    }, 1000);
+                    return () => clearTimeout(timer);
+                }
+            }, [isRolling]);
+
+            const rollDice = () => {
+                if (rollsLeft > 0 && !isRolling) {
+                    setGameState(prevState => ({
+                        ...prevState,
+                        isRolling: true,
+                        dice: prevState.dice.map(d => d.isHeld ? d : { ...d, value: Math.ceil(Math.random() * 6) }),
+                        rollsLeft: prevState.rollsLeft - 1,
+                    }));
+                }
             };
 
-            // --- DATA STRUCTURES ---
-            let dots = []; 
-            let members = []; 
-            let constraints = [];
+            const toggleHeld = (id) => {
+                if (rollsLeft < NUM_ROLLS) {
+                    setGameState(prevState => ({
+                        ...prevState,
+                        dice: prevState.dice.map(d => (d.id === id ? { ...d, isHeld: !d.isHeld } : d)),
+                    }));
+                }
+            };
 
-            // --- STATE VARIABLES ---
-            let mode = 'move';
-            let appMode = 'edit';
-            const gridSize = 20;
-            const dotRadius = 6;
+            const applyScore = (ruleName) => {
+                if (scores[ruleName] === null && rollsLeft < NUM_ROLLS) {
+                    const currentDiceValues = dice.map(d => d.value);
+                    const score = rules[ruleName].evalRoll(currentDiceValues);
+                    
+                    let newYahtzeeBonusCount = yahtzeeBonusCount;
+                    if (rules.yahtzee.evalRoll(currentDiceValues) === 50 && scores.yahtzee === 50) {
+                        newYahtzeeBonusCount++;
+                    }
+
+                    setGameState(prevState => ({
+                        ...prevState,
+                        scores: { ...prevState.scores, [ruleName]: score },
+                        turn: prevState.turn + 1,
+                        rollsLeft: NUM_ROLLS,
+                        isRolling: false,
+                        dice: prevState.dice.map(d => ({ ...d, isHeld: false })),
+                        yahtzeeBonusCount: newYahtzeeBonusCount,
+                    }));
+                }
+            };
+
+            const restartGame = () => setGameState(getInitialState());
+
+            const upperScore = Object.keys(scores).slice(0, 6).reduce((total, key) => total + (scores[key] || 0), 0);
+            const bonus = upperScore >= BONUS_THRESHOLD ? BONUS_POINTS : 0;
+            const lowerScore = Object.keys(scores).slice(6).reduce((total, key) => total + (scores[key] || 0), 0);
+            const yahtzeeBonusScore = yahtzeeBonusCount * 100;
+            const totalScore = upperScore + bonus + lowerScore + yahtzeeBonusScore;
             
-            let selectedDotIndices = [];
-            let selectedMemberIndices = [];
-            let hoveredDotIndex = null;
-            let hoveredMemberIndex = null;
-            let isDragging = false;
-            let dragOffsets = new Map();
-            let lastMousePos = { x: 0, y: 0 };
-            
-            // Tool-specific states
-            let lineStartPinIndex = null;
-            let sliderPinSelect = null;
-            let motorMemberSelect = null;
-
-            // --- HISTORY & SIMULATION ---
-            let history = [];
-            let historyIndex = -1;
-            let clipboard = null;
-            let animationFrameId = null;
-            let preSimState = null;
-
-            // =================================================================
-            // --- CORE DRAWING FUNCTIONS ---
-            // =================================================================
-            function resizeCanvas() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; redrawCanvas(); }
-            function redrawCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid(); drawMembers(); drawGhostPin(); drawGhostLine(); drawGhostToolIndicator(); drawDots(); drawSelectionHighlights(); }
-            function drawGrid() { ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.5; for (let x = 0; x <= canvas.width; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); } for (let y = 0; y <= canvas.height; y += gridSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); } }
-            function drawMembers() { ctx.strokeStyle = '#374151'; ctx.lineWidth = 4; members.forEach(member => { const pin1 = dots[member.pin1]; const pin2 = dots[member.pin2]; if(pin1 && pin2) { ctx.beginPath(); ctx.moveTo(pin1.x, pin1.y); ctx.lineTo(pin2.x, pin2.y); ctx.stroke(); } }); }
-            function drawDots() { dots.forEach((dot, index) => { ctx.fillStyle = dot.color; ctx.strokeStyle = '#374151'; ctx.lineWidth = 1.5; ctx.beginPath(); const isSlider = constraints.some(c => c.type === 'slider' && c.pinIndex === index); if (isSlider) { ctx.rect(dot.x - dotRadius, dot.y - dotRadius, dotRadius * 2, dotRadius * 2); } else { ctx.arc(dot.x, dot.y, dotRadius, 0, 2 * Math.PI); } ctx.fill(); ctx.stroke(); if (dot.isFixed) { ctx.strokeStyle = '#374151'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(dot.x - dotRadius / 2, dot.y - dotRadius / 2); ctx.lineTo(dot.x + dotRadius / 2, dot.y + dotRadius / 2); ctx.moveTo(dot.x + dotRadius / 2, dot.y - dotRadius / 2); ctx.lineTo(dot.x - dotRadius / 2, dot.y + dotRadius / 2); ctx.stroke(); } const motor = constraints.find(c => c.type === 'motor' && c.pivotPinIndex === index); if(motor) { ctx.strokeStyle = '#ea580c'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(dot.x, dot.y, dotRadius + 3, -Math.PI/2, Math.PI); ctx.stroke(); ctx.beginPath(); ctx.moveTo(dot.x, dot.y - dotRadius - 3); ctx.lineTo(dot.x - 3, dot.y - dotRadius - 6); ctx.moveTo(dot.x, dot.y - dotRadius - 3); ctx.lineTo(dot.x + 3, dot.y - dotRadius - 6); ctx.stroke(); } }); }
-            function drawGhostPin() { if (mode !== 'place' || appMode === 'sim') return; const snappedPos = getSnappedCoords(lastMousePos.x, lastMousePos.y); ctx.beginPath(); ctx.arc(snappedPos.x, snappedPos.y, dotRadius, 0, 2 * Math.PI); ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; ctx.fill(); }
-            function drawGhostLine() { if (mode !== 'line' || lineStartPinIndex === null || appMode === 'sim') return; const startPin = dots[lineStartPinIndex]; let endX = lastMousePos.x; let endY = lastMousePos.y; if (hoveredDotIndex !== null && hoveredDotIndex !== lineStartPinIndex) { endX = dots[hoveredDotIndex].x; endY = dots[hoveredDotIndex].y; } ctx.beginPath(); ctx.moveTo(startPin.x, startPin.y); ctx.lineTo(endX, endY); ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'; ctx.lineWidth = 4; ctx.stroke(); }
-            function drawGhostToolIndicator() { if (appMode === 'sim' || mode !== 'line' || lineStartPinIndex !== null) return; ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lastMousePos.x - 5, lastMousePos.y - 5); ctx.lineTo(lastMousePos.x + 5, lastMousePos.y + 5); ctx.stroke(); }
-            function drawSelectionHighlights() { if (appMode === 'sim') return; ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)'; ctx.lineWidth = 2; const allSelectedDots = getFullSelection(); allSelectedDots.forEach(index => { const dot = dots[index]; if (!dot) return; ctx.beginPath(); ctx.arc(dot.x, dot.y, dotRadius + 4, 0, 2 * Math.PI); ctx.stroke(); }); ctx.lineCap = 'round'; ctx.lineWidth = dotRadius * 2; ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'; selectedMemberIndices.forEach(index => { const member = members[index]; if (!member) return; const p1 = dots[member.pin1]; const p2 = dots[member.pin2]; if (!p1 || !p2) return; ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }); ctx.lineCap = 'butt'; let indexToHighlight = null; if (mode === 'line' && lineStartPinIndex !== null) indexToHighlight = lineStartPinIndex; else if (mode === 'slider' && sliderPinSelect !== null) indexToHighlight = sliderPinSelect; if(indexToHighlight !== null) { const dot = dots[indexToHighlight]; if (!dot) return; ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(dot.x, dot.y, dotRadius + 4, 0, 2 * Math.PI); ctx.stroke(); } }
-
-            // =================================================================
-            // --- STATE & MODE MANAGEMENT ---
-            // =================================================================
-            function setAppMode(newAppMode) {
-                appMode = newAppMode;
-                clearSelections();
-                setMode('move');
-                
-                toolButtons.edit.classList.toggle('active', appMode === 'edit');
-                toolButtons.sim.classList.toggle('active', appMode === 'sim');
-                canvas.classList.toggle('sim-mode', appMode === 'sim');
-                
-                // Disable editing tools and reset button in sim mode
-                ['pin', 'line', 'anchor', 'slider', 'motor', 'reset'].forEach(key => {
-                    toolButtons[key].disabled = (appMode === 'sim');
-                });
-
-                if (appMode === 'sim') {
-                    startSimulation();
-                } else {
-                    stopSimulation();
-                }
-                redrawCanvas();
+            if (turn > NUM_TURNS) {
+                return <Gameover totalScore={totalScore} restartGame={restartGame} upperScore={upperScore} bonus={bonus} yahtzeeBonusScore={yahtzeeBonusScore} />;
             }
 
-            function setMode(newToolMode) {
-                if (appMode === 'sim') return;
-                clearSelections();
-                lineStartPinIndex = null;
-                sliderPinSelect = null;
-                motorMemberSelect = null;
-                mode = newToolMode;
-                
-                ['pin', 'line', 'anchor', 'slider', 'motor'].forEach(key => toolButtons[key].classList.remove('active'));
-                
-                switch(mode) {
-                    case 'place': toolButtons.pin.classList.add('active'); canvas.style.cursor = 'crosshair'; break;
-                    case 'line': toolButtons.line.classList.add('active'); canvas.style.cursor = 'crosshair'; break;
-                    case 'anchor': toolButtons.anchor.classList.add('active'); canvas.style.cursor = 'pointer'; break;
-                    case 'slider': toolButtons.slider.classList.add('active'); canvas.style.cursor = 'pointer'; break;
-                    case 'motor': toolButtons.motor.classList.add('active'); canvas.style.cursor = 'pointer'; break;
-                    case 'move': default: canvas.style.cursor = 'default'; break;
-                }
-                redrawCanvas();
-            }
+            return (
+                <div className="Game">
+                    <div className="Game-header">
+                        <h2 className="Game-title">
+                            {rollsLeft === NUM_ROLLS ? "Roll to start your turn" : `Rolls Left: ${rollsLeft}`}
+                        </h2>
+                        <button className="Game-restart-btn" onClick={restartGame}>Restart Game</button>
+                    </div>
+                    <DiceContainer dice={dice} toggleHeld={toggleHeld} isRolling={isRolling} />
+                    <button className="Game-roll-btn" onClick={rollDice} disabled={rollsLeft <= 0 || isRolling}>
+                        {isRolling ? "Rolling..." : "Roll Dice"}
+                    </button>
+                    <ScoreTable
+                        scores={scores}
+                        diceValues={dice.map(d => d.value)}
+                        applyScore={applyScore}
+                        isScoringDisabled={rollsLeft === NUM_ROLLS}
+                        upperScore={upperScore}
+                        bonus={bonus}
+                        yahtzeeBonusScore={yahtzeeBonusScore}
+                        totalScore={totalScore}
+                    />
+                </div>
+            );
+        }
 
-            function clearSelections() { selectedDotIndices = []; selectedMemberIndices = []; }
-            
-            // --- HISTORY MANAGEMENT ---
-            function saveState() { if (appMode === 'sim') return; history.splice(historyIndex + 1); const state = { dots: JSON.parse(JSON.stringify(dots)), members: JSON.parse(JSON.stringify(members)), constraints: JSON.parse(JSON.stringify(constraints)) }; history.push(state); historyIndex = history.length - 1; }
-            function undo() { if (appMode === 'sim' || historyIndex <= 0) return; historyIndex--; loadState(history[historyIndex]); }
-            function loadState(state) { dots = JSON.parse(JSON.stringify(state.dots)); members = JSON.parse(JSON.stringify(state.members)); constraints = JSON.parse(JSON.stringify(state.constraints)); clearSelections(); redrawCanvas(); }
+        // App Component
+        function App() {
+            return (
+                <div className="App">
+                    <header className="App-header">
+                        <h1>Yahtzee</h1>
+                    </header>
+                    <main>
+                        <Game />
+                    </main>
+                    <footer className="App-footer">
+                        <p>Built with React by Gemini</p>
+                    </footer>
+                </div>
+            );
+        }
 
-            // --- SIMULATION LOOP ---
-            function startSimulation() {
-                preSimState = { dots: JSON.parse(JSON.stringify(dots)), members: JSON.parse(JSON.stringify(members)), constraints: JSON.parse(JSON.stringify(constraints)) };
-                constraints.forEach(c => { if (c.type === 'motor') c.angle = Math.atan2(dots[c.drivenPinIndex].y - dots[c.pivotPinIndex].y, dots[c.drivenPinIndex].x - dots[c.pivotPinIndex].x); });
-                function animate() {
-                    constraints.forEach(c => {
-                        if (c.type === 'motor') {
-                            c.angle += c.speed;
-                            const pivot = dots[c.pivotPinIndex];
-                            const driven = dots[c.drivenPinIndex];
-                            const member = members[c.memberIndex];
-                            if (pivot && driven && member) {
-                                driven.x = pivot.x + Math.cos(c.angle) * member.length;
-                                driven.y = pivot.y + Math.sin(c.angle) * member.length;
-                            }
-                        }
-                    });
-                    solveConstraints();
-                    redrawCanvas();
-                    animationFrameId = requestAnimationFrame(animate);
-                }
-                animate();
-            }
-
-            function stopSimulation() {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null; // Clear the ID
-                if (preSimState) {
-                    loadState(preSimState);
-                    preSimState = null;
-                }
-            }
-
-            // --- UTILITY & PHYSICS FUNCTIONS ---
-            function getMousePos(event) { const rect = canvas.getBoundingClientRect(); return { x: event.clientX - rect.left, y: event.clientY - rect.top }; }
-            function getSnappedCoords(x, y) { return { x: Math.round(x / gridSize) * gridSize, y: Math.round(y / gridSize) * gridSize }; }
-            function findDotAt(x, y) { const snapDistance = dotRadius + 9; for (let i = dots.length - 1; i >= 0; i--) { const dot = dots[i]; const distance = Math.sqrt((x - dot.x) ** 2 + (y - dot.y) ** 2); if (distance < snapDistance) return i; } return null; }
-            function findMemberAt(x, y) { const clickBuffer = 5; for (let i = members.length - 1; i >= 0; i--) { const p1 = dots[members[i].pin1], p2 = dots[members[i].pin2]; if (!p1 || !p2) continue; const dx = p2.x - p1.x, dy = p2.y - p1.y, lenSq = dx * dx + dy * dy; if (lenSq === 0) continue; const t = ((x - p1.x) * dx + (y - p1.y) * dy) / lenSq; if (t < 0 || t > 1) continue; if (((p1.y - y) * dx - (p1.x - x) * dy) ** 2 / lenSq < (dotRadius + clickBuffer) ** 2) return i; } return null; }
-            function getFullSelection() { const allSelectedDots = new Set(selectedDotIndices); selectedMemberIndices.forEach(mi => { const member = members[mi]; if (member) { allSelectedDots.add(member.pin1); allSelectedDots.add(member.pin2); } }); return allSelectedDots; }
-            function solveConstraints() { const iterations = 15; for (let i = 0; i < iterations; i++) { members.forEach(member => { const p1 = dots[member.pin1]; const p2 = dots[member.pin2]; if (!p1 || !p2) return; const dx = p2.x - p1.x; const dy = p2.y - p1.y; const distance = Math.sqrt(dx * dx + dy * dy); if (distance === 0) return; const difference = member.length - distance; const percent = difference / distance / 2; const offsetX = dx * percent; const offsetY = dy * percent; if (!p1.isFixed) { p1.x -= offsetX; p1.y -= offsetY; } if (!p2.isFixed) { p2.x += offsetX; p2.y += offsetY; } }); constraints.forEach(c => { if (c.type === 'slider') { const sliderPin = dots[c.pinIndex]; const trackMember = members[c.memberIndex]; if (!sliderPin || !trackMember) return; const p1 = dots[trackMember.pin1]; const p2 = dots[trackMember.pin2]; const dx = p2.x - p1.x; const dy = p2.y - p1.y; const lenSq = dx * dx + dy * dy; if (lenSq === 0) return; let t = ((sliderPin.x - p1.x) * dx + (sliderPin.y - p1.y) * dy) / lenSq; t = Math.max(0, Math.min(1, t)); const closestX = p1.x + t * dx; const closestY = p1.y + t * dy; sliderPin.x = closestX; sliderPin.y = closestY; } }); } }
-
-            // --- EVENT HANDLERS ---
-            function handleMouseDown(event) { const pos = getMousePos(event); if (appMode === 'sim') { const dotIndex = findDotAt(pos.x, pos.y); if (dotIndex !== null && !dots[dotIndex].isFixed) { selectedDotIndices = [dotIndex]; isDragging = true; } return; } const clickedDot = findDotAt(pos.x, pos.y); const clickedMember = findMemberAt(pos.x, pos.y); if (event.ctrlKey) { isDragging = false; if (clickedDot !== null) { const index = selectedDotIndices.indexOf(clickedDot); if (index > -1) selectedDotIndices.splice(index, 1); else selectedDotIndices.push(clickedDot); } else if (clickedMember !== null) { const index = selectedMemberIndices.indexOf(clickedMember); if (index > -1) selectedMemberIndices.splice(index, 1); else selectedMemberIndices.push(clickedMember); } } else { if (clickedDot !== null) { if (!selectedDotIndices.includes(clickedDot)) { clearSelections(); selectedDotIndices.push(clickedDot); } } else if (clickedMember !== null) { if (!selectedMemberIndices.includes(clickedMember)) { clearSelections(); selectedMemberIndices.push(clickedMember); } } else { clearSelections(); } if (clickedDot !== null || clickedMember !== null) { isDragging = true; dragOffsets.clear(); const allSelectedDots = getFullSelection(); allSelectedDots.forEach(di => { if (!dots[di].isFixed) { dragOffsets.set(di, { x: dots[di].x - pos.x, y: dots[di].y - pos.y }); } }); } } redrawCanvas(); }
-            function handleMouseMove(event) { const pos = getMousePos(event); lastMousePos = { x: pos.x, y: pos.y }; if (isDragging) { canvas.style.cursor = 'grabbing'; if (appMode === 'sim') { if(selectedDotIndices.length > 0) { const snappedPos = getSnappedCoords(pos.x, pos.y); dots[selectedDotIndices[0]].x = snappedPos.x; dots[selectedDotIndices[0]].y = snappedPos.y; solveConstraints(); } } else { dragOffsets.forEach((offset, di) => { const newX = pos.x + offset.x; const newY = pos.y + offset.y; const snapped = getSnappedCoords(newX, newY); dots[di].x = snapped.x; dots[di].y = snapped.y; }); } } else { hoveredDotIndex = findDotAt(pos.x, pos.y); hoveredMemberIndex = findMemberAt(pos.x, pos.y); canvas.style.cursor = (hoveredDotIndex !== null || hoveredMemberIndex !== null) ? 'move' : 'default'; } redrawCanvas(); }
-            function handleMouseUp() { if (isDragging) { if (appMode === 'edit') { saveState(); } else { selectedDotIndices = []; } } isDragging = false; dragOffsets.clear(); redrawCanvas(); }
-            function handleCanvasClick(event) { if (isDragging || appMode === 'sim') return; const pos = getMousePos(event); if (mode === 'place') { const snappedPos = getSnappedCoords(pos.x, pos.y); dots.push({ x: snappedPos.x, y: snappedPos.y, color: '#ef4444', isFixed: false }); saveState(); } else if (mode === 'line') { const clickedPinIndex = findDotAt(pos.x, pos.y); if (clickedPinIndex === null) { lineStartPinIndex = null; } else if (lineStartPinIndex === null) { lineStartPinIndex = clickedPinIndex; } else { if (lineStartPinIndex !== clickedPinIndex) { const p1 = dots[lineStartPinIndex]; const p2 = dots[clickedPinIndex]; const length = Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2); members.push({ pin1: lineStartPinIndex, pin2: clickedPinIndex, length: length }); saveState(); } lineStartPinIndex = null; } } else if (mode === 'anchor') { const clickedPinIndex = findDotAt(pos.x, pos.y); if (clickedPinIndex !== null) { dots[clickedPinIndex].isFixed = !dots[clickedPinIndex].isFixed; saveState(); } } else if (mode === 'slider') { const clickedPinIndex = findDotAt(pos.x, pos.y); const clickedMemberIndex = findMemberAt(pos.x, pos.y); if (sliderPinSelect === null) { if (clickedPinIndex !== null) { sliderPinSelect = clickedPinIndex; } } else { if (clickedMemberIndex !== null) { if (members[clickedMemberIndex].pin1 !== sliderPinSelect && members[clickedMemberIndex].pin2 !== sliderPinSelect) { constraints.push({ type: 'slider', pinIndex: sliderPinSelect, memberIndex: clickedMemberIndex }); saveState(); } } else { sliderPinSelect = null; } if (clickedMemberIndex !== null) sliderPinSelect = null; } } else if (mode === 'motor') { const clickedMemberIndex = findMemberAt(pos.x, pos.y); const clickedPinIndex = findDotAt(pos.x, pos.y); if (motorMemberSelect === null) { if (clickedMemberIndex !== null) motorMemberSelect = clickedMemberIndex; } else { const member = members[motorMemberSelect]; if (clickedPinIndex !== null && (clickedPinIndex === member.pin1 || clickedPinIndex === member.pin2)) { const drivenPinIndex = (clickedPinIndex === member.pin1) ? member.pin2 : member.pin1; constraints.push({ type: 'motor', memberIndex: motorMemberSelect, pivotPinIndex: clickedPinIndex, drivenPinIndex: drivenPinIndex, speed: 0.02, angle: 0 }); saveState(); } motorMemberSelect = null; } } redrawCanvas(); }
-            function handleKeyDown(event) { if (event.ctrlKey && event.key.toLowerCase() === 'z') { undo(); return; } if (appMode === 'sim') return; if (event.key.toLowerCase() === 'p') { setMode('place'); return; } if (event.key.toLowerCase() === 'l') { setMode('line'); return; } if (event.key.toLowerCase() === 'a') { setMode('anchor'); return; } if (event.key.toLowerCase() === 's') { setMode('slider'); return; } if (event.key.toLowerCase() === 'm') { setMode('motor'); return; } if (event.key === 'Escape') { if (lineStartPinIndex !== null) lineStartPinIndex = null; else if (sliderPinSelect !== null) sliderPinSelect = null; else if (motorMemberSelect !== null) motorMemberSelect = null; else if (selectedDotIndices.length > 0 || selectedMemberIndices.length > 0) clearSelections(); else setMode('move'); redrawCanvas(); return; } const selectionEmpty = selectedDotIndices.length === 0 && selectedMemberIndices.length === 0; if (selectionEmpty) return; const allSelectedDots = getFullSelection(); if (event.key === 'Delete') { const newDots = dots.filter((_, i) => !allSelectedDots.has(i)); const dotMap = new Map(); let newIndex = 0; dots.forEach((_, oldIndex) => { if(!allSelectedDots.has(oldIndex)) { dotMap.set(oldIndex, newIndex++); } }); const newMembers = members .filter(m => !allSelectedDots.has(m.pin1) && !allSelectedDots.has(m.pin2)) .map(m => ({...m, pin1: dotMap.get(m.pin1), pin2: dotMap.get(m.pin2)})); const newConstraints = constraints .filter(c => !allSelectedDots.has(c.pinIndex)) .map(c => ({...c, pinIndex: dotMap.get(c.pinIndex)})); dots = newDots; members = newMembers; constraints = newConstraints; clearSelections(); saveState(); redrawCanvas(); } if (event.key.toLowerCase() === 'r') { if (allSelectedDots.size === 0) return; const movableDots = Array.from(allSelectedDots).filter(di => !dots[di].isFixed); const fixedDots = Array.from(allSelectedDots).filter(di => dots[di].isFixed); if (movableDots.length === 0) return; let centerX, centerY; if (fixedDots.length > 0) { let sumX = 0, sumY = 0; fixedDots.forEach(di => { sumX += dots[di].x; sumY += dots[di].y; }); centerX = sumX / fixedDots.length; centerY = sumY / fixedDots.length; } else { let sumX = 0, sumY = 0; movableDots.forEach(di => { sumX += dots[di].x; sumY += dots[di].y; }); centerX = sumX / movableDots.length; centerY = sumY / movableDots.length; } movableDots.forEach(di => { const dot = dots[di]; const dx = dot.x - centerX; const dy = dot.y - centerY; dot.x = centerX - dy; dot.y = centerY + dx; const snapped = getSnappedCoords(dot.x, dot.y); dot.x = snapped.x; dot.y = snapped.y; }); saveState(); redrawCanvas(); } if (event.ctrlKey && (event.key.toLowerCase() === 'c' || event.key.toLowerCase() === 'x')) { const dotMap = new Map(); let clipDots = []; Array.from(allSelectedDots).forEach((di, i) => { dotMap.set(di, i); clipDots.push({...dots[di]}); }); const membersToCopy = members.filter(m => allSelectedDots.has(m.pin1) && allSelectedDots.has(m.pin2)); let clipMembers = membersToCopy.map(m => ({ ...m, pin1: dotMap.get(m.pin1), pin2: dotMap.get(m.pin2) })); const constraintsToCopy = constraints.filter(c => allSelectedDots.has(c.pinIndex)); let clipConstraints = constraintsToCopy.map(c => ({...c, pinIndex: dotMap.get(c.pinIndex)})); clipboard = { dots: clipDots, members: clipMembers, constraints: clipConstraints }; if (event.key.toLowerCase() === 'x') { handleKeyDown({key: 'Delete'}); } } if (event.ctrlKey && event.key.toLowerCase() === 'v') { if (!clipboard || clipboard.dots.length === 0) return; clearSelections(); const mousePos = getSnappedCoords(lastMousePos.x, lastMousePos.y); let sumX = 0, sumY = 0; clipboard.dots.forEach(d => { sumX += d.x; sumY += d.y; }); const clipCenterX = sumX / clipboard.dots.length; const clipCenterY = sumY / clipboard.dots.length; const dotMap = new Map(); clipboard.dots.forEach((d, i) => { const newDot = { ...d, x: mousePos.x + (d.x - clipCenterX), y: mousePos.y + (d.y - clipCenterY) }; const snapped = getSnappedCoords(newDot.x, newDot.y); newDot.x = snapped.x; newDot.y = snapped.y; dots.push(newDot); const newIndex = dots.length - 1; dotMap.set(i, newIndex); selectedDotIndices.push(newIndex); }); clipboard.members.forEach(m => { if (dotMap.has(m.pin1) && dotMap.has(m.pin2)) { const newMember = { ...m, pin1: dotMap.get(m.pin1), pin2: dotMap.get(m.pin2) }; members.push(newMember); selectedMemberIndices.push(members.length - 1); } }); clipboard.constraints.forEach(c => { if(dotMap.has(c.pinIndex)) { const newConstraint = {...c, pinIndex: dotMap.get(c.pinIndex)}; constraints.push(newConstraint); } }); saveState(); redrawCanvas(); } }
-
-            // --- SETUP EVENT LISTENERS ---
-            toolButtons.pin.addEventListener('click', () => setMode('place'));
-            toolButtons.line.addEventListener('click', () => setMode('line'));
-            toolButtons.anchor.addEventListener('click', () => setMode('anchor'));
-            toolButtons.slider.addEventListener('click', () => setMode('slider'));
-            toolButtons.motor.addEventListener('click', () => setMode('motor'));
-            toolButtons.edit.addEventListener('click', () => setAppMode('edit'));
-            toolButtons.sim.addEventListener('click', () => setAppMode('sim'));
-            toolButtons.reset.addEventListener('click', () => { dots = []; members = []; constraints = []; setAppMode('edit'); saveState(); redrawCanvas(); });
-
-            canvas.addEventListener('mousedown', handleMouseDown);
-            canvas.addEventListener('mousemove', handleMouseMove);
-            canvas.addEventListener('mouseup', handleMouseUp);
-            canvas.addEventListener('click', handleCanvasClick);
-            window.addEventListener('keydown', handleKeyDown);
-            window.addEventListener('resize', resizeCanvas);
-
-            // --- INITIAL SETUP ---
-            resizeCanvas();
-            setAppMode('edit');
-            saveState(); // Save the initial empty state for undo
-        });
+        // --- Render the App ---
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
     </script>
 </body>
 </html>
