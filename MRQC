@@ -1,0 +1,115 @@
+# ----------------------------
+# 1) CONFIG: set your 4 roots
+# ----------------------------
+$Path1 = "C:\Your\Root\A1"  # Pair A - First image: JPG name starts with SN
+$Path2 = "C:\Your\Root\A2"  # Pair A - Second image: JPG name contains SN
+$Path3 = "C:\Your\Root\B1"  # Pair B - First image: JPG name starts with SN
+$Path4 = "C:\Your\Root\B2"  # Pair B - Second image: JPG name contains SN
+
+# ----------------------------
+# 2) Helpers
+# ----------------------------
+
+function Get-JpgsFromTwoLevelTree {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root
+    )
+
+    if (-not (Test-Path -LiteralPath $Root)) { return @() }
+
+    $result = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+
+    # root\*\*\*.jpg  (exactly two folder levels deep)
+    $level1 = Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyContinue
+    foreach ($d1 in $level1) {
+        $level2 = Get-ChildItem -LiteralPath $d1.FullName -Directory -ErrorAction SilentlyContinue
+        foreach ($d2 in $level2) {
+            $imgs = Get-ChildItem -LiteralPath $d2.FullName -File -ErrorAction SilentlyContinue | Where-Object {
+                $_.Extension -match '^\.(jpg|jpeg)$'
+            }
+            foreach ($img in $imgs) { $result.Add($img) }
+        }
+    }
+
+    return $result
+}
+
+function Find-LatestJpg {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$SerialNumber,
+        [Parameter(Mandatory=$true)][ValidateSet("StartsWith","Contains")][string]$MatchMode
+    )
+
+    $candidates = Get-JpgsFromTwoLevelTree -Root $Root
+    if (-not $candidates -or $candidates.Count -eq 0) { return $null }
+
+    $sn = $SerialNumber
+
+    $matches = switch ($MatchMode) {
+        "StartsWith" { $candidates | Where-Object { $_.Name.StartsWith($sn, [System.StringComparison]::OrdinalIgnoreCase) } }
+        "Contains"   { $candidates | Where-Object { $_.Name.IndexOf($sn, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } }
+    }
+
+    return $matches | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+}
+
+function Try-FindPair {
+    param(
+        [Parameter(Mandatory=$true)][string]$SerialNumber,
+        [Parameter(Mandatory=$true)][string]$RootA,
+        [Parameter(Mandatory=$true)][string]$RootB,
+        [Parameter(Mandatory=$true)][ValidateSet("StartsWith","Contains")][string]$ModeA,
+        [Parameter(Mandatory=$true)][ValidateSet("StartsWith","Contains")][string]$ModeB
+    )
+
+    $img1 = Find-LatestJpg -Root $RootA -SerialNumber $SerialNumber -MatchMode $ModeA
+    if (-not $img1) { return $null }   # if first missing, do NOT open only one
+
+    $img2 = Find-LatestJpg -Root $RootB -SerialNumber $SerialNumber -MatchMode $ModeB
+    if (-not $img2) { return $null }
+
+    return @($img1, $img2)
+}
+
+# ----------------------------
+# 3) Main loop
+# ----------------------------
+Write-Host "JPG Pair Opener ready."
+Write-Host "Images must be in: root\subfolder\subsubfolder\image.jpg"
+Write-Host "Enter a 12-digit SN (or Q to quit)."
+
+while ($true) {
+    $snInput = Read-Host "`nScan/type SN"
+    if ($null -eq $snInput) { continue }
+
+    $sn = $snInput.Trim()
+
+    if ($sn -match '^(q|quit|exit)$') { break }
+
+    if ($sn -notmatch '^\d{12}$') {
+        Write-Warning "SN must be exactly 12 digits. You entered: '$sn'"
+        continue
+    }
+
+    # Preferred: Path1 + Path2
+    $pair = Try-FindPair -SerialNumber $sn -RootA $Path1 -RootB $Path2 -ModeA "StartsWith" -ModeB "Contains"
+
+    # Fallback: Path3 + Path4
+    if (-not $pair) {
+        $pair = Try-FindPair -SerialNumber $sn -RootA $Path3 -RootB $Path4 -ModeA "StartsWith" -ModeB "Contains"
+    }
+
+    if (-not $pair) {
+        Write-Warning "Could not find TWO images for SN $sn (neither pair produced a complete set)."
+        continue
+    }
+
+    Write-Host "Found 1: $($pair[0].FullName) (LastWriteTime: $($pair[0].LastWriteTime))"
+    Write-Host "Found 2: $($pair[1].FullName) (LastWriteTime: $($pair[1].LastWriteTime))"
+
+    Start-Process -FilePath $pair[0].FullName | Out-Null
+    Start-Process -FilePath $pair[1].FullName | Out-Null
+}
+
+Write-Host "Exiting."
